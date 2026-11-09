@@ -1,0 +1,105 @@
+/* PVI-Watch Prototyp – gemeinsame Styles */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ee;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --accent: #2a78d6;
+  --accent-ink: #1c5cab;
+  --good: #0ca30c;
+  --good-ink: #006300;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  --none: #898781;
+  --ecg-paper: #fff7f6;
+  --ecg-minor: #f6d9d6;
+  --ecg-major: #eaa9a3;
+  --ecg-trace: #141414;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--page);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #232321;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255,255,255,0.10);
+    --accent: #3987e5;
+    --accent-ink: #86b6ef;
+    --good-ink: #0ca30c;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); }
+h1, h2, h3, h4 { margin: 0; font-weight: 600; }
+h1 { font-size: 22px; }
+h2 { font-size: 16px; }
+h3 { font-size: 14px; }
+a { color: var(--accent-ink); }
+button {
+  font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink); padding: 7px 12px;
+}
+button:hover { background: var(--surface-2); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.primary:hover { filter: brightness(1.07); }
+button.danger { border-color: var(--critical); color: var(--critical); }
+button:disabled { opacity: .5; cursor: default; }
+input[type=text], input[type=search], textarea, select {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px;
+}
+textarea { width: 100%; resize: vertical; min-height: 56px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.muted { color: var(--muted); }
+.ink2 { color: var(--ink-2); }
+.small { font-size: 12px; }
+.tnum { font-variant-numeric: tabular-nums; }
+.row { display: flex; gap: 8px; align-items: center; }
+.spacer { flex: 1; }
+
+/* Status-Badges: Farbe + Symbol + Text (nie Farbe allein) */
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.badge .dot { width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 800; color: #fff; }
+.badge.critical .dot { background: var(--critical); }
+.badge.warning .dot { background: var(--warning); color: #0b0b0b; }
+.badge.good .dot { background: var(--good); }
+.badge.none .dot { background: var(--none); }
+.badge.info .dot, .badge.done .dot { background: var(--accent); }
+
+.pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border); white-space: nowrap; }
+.pill.endpoint { background: var(--critical); color: #fff; border-color: transparent; }
+.pill.blanking { background: transparent; border-style: dashed; }
+
+.disclaimer { font-size: 12px; color: var(--ink-2); background: var(--surface-2); border: 1px dashed var(--axis); border-radius: 8px; padding: 8px 12px; }
+
+.tooltip {
+  position: fixed; pointer-events: none; z-index: 50; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0,0,0,.12); border-radius: 8px;
+  padding: 6px 9px; font-size: 12px; line-height: 1.45; display: none; white-space: nowrap;
+}
+.tooltip b { font-weight: 600; }
+
+.toast {
+  position: fixed; right: 20px; bottom: 20px; z-index: 60; background: var(--ink); color: var(--page);
+  padding: 10px 14px; border-radius: 10px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.2);
+  transform: translateY(20px); opacity: 0; transition: all .25s;
+}
+.toast.show { transform: none; opacity: 1; }

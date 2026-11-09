@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PVI-Watch · Prototyp</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 24px 60px; display: flex; flex-direction: column; gap: 24px; }
+  .hero h1 { font-size: 30px; }
+  .hero p { font-size: 15px; color: var(--ink-2); max-width: 760px; line-height: 1.55; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .cards a { text-decoration: none; color: inherit; }
+  .cards .card { padding: 18px; height: 100%; transition: transform .15s; }
+  .cards .card:hover { transform: translateY(-2px); }
+  .cards .e { font-size: 30px; }
+  .cards h2 { margin: 8px 0 6px; }
+  .cards p { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+  .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; align-items: stretch; }
+  .node { padding: 12px; font-size: 12.5px; line-height: 1.45; position: relative; }
+  .node b { display: block; font-size: 13.5px; margin-bottom: 4px; }
+  .node:not(:last-child)::after { content: '→'; position: absolute; right: -10px; top: 40%; color: var(--muted); font-size: 16px; transform: translateX(50%); }
+  .sec { padding: 18px; }
+  .sec h2 { margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  ul.rules { margin: 0; padding-left: 18px; line-height: 1.7; font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <span class="pill">Prototyp für den Projektantrag · synthetische Daten</span>
+    <h1 style="margin-top:10px">PVI-Watch – Smartwatch-Monitoring nach Pulmonalvenenisolation</h1>
+    <p>Patientinnen und Patienten nach der ersten Katheterablation (PVI) übertragen Herzfrequenz und 30-s-Einkanal-EKGs ihrer
+      eigenen Smartwatch, unabhängig vom Hersteller. Das System <b>sortiert</b> die Patienten nach Auffälligkeit (VHF-Hinweis, Tachykardie,
+      fehlende Daten). <b>Befund und weiteres Vorgehen entscheiden ausschließlich die Studienärztinnen und -ärzte.</b></p>
+  </div>
+
+  <div class="cards">
+    <a href="demo.html"><div class="card"><div class="e">🖥️📱</div><h2>Demo-Modus</h2><p>Patienten-App und Klinik-Dashboard nebeneinander. Ein in der App aufgezeichnetes EKG erscheint sofort im Dashboard. Gut für Präsentationen.</p></div></a>
+    <a href="dashboard.html"><div class="card"><div class="e">🩺</div><h2>Klinik-Dashboard</h2><p>Arbeitsliste mit Flags, EKG-Betrachter auf EKG-Papier, Poincaré-Plot, HF-Verlauf, ärztlicher Befund mit Signatur, Kontaktdokumentation, Audit-Trail, CSV-Export.</p></div></a>
+    <a href="patient.html"><div class="card"><div class="e">📱</div><h2>Patienten-App</h2><p>Einschluss per QR-Code, Einwilligung, Verbindung mit der Uhr, EKG-Aufzeichnung, Symptom-Taste, Push-Nachricht „Bitte EKG aufzeichnen“.</p></div></a>
+  </div>
+
+  <div class="card sec">
+    <h2>Datenfluss</h2>
+    <div class="flow">
+      <div class="card node"><b>⌚ Smartwatch</b>EKG (30 s, Einkanal), Herzfrequenz, Hinweise auf unregelmäßigen Rhythmus. Die Aufnahme startet der Patient selbst.</div>
+      <div class="card node"><b>📱 Studien-App + Thryve</b>Apple Health über das Thryve-SDK in der App. Google Health (Fitbit/Pixel), Withings, Garmin über das Verbindungs-Widget von Thryve (OAuth). Samsung-EKG direkt über das Samsung-SDK.</div>
+      <div class="card node"><b>🔒 Studien-Backend (DE/EU)</b>Pseudonymisiert, TLS, FHIR-Ablage, Audit-Trail. Keine Klarnamen.</div>
+      <div class="card node"><b>⚙️ Regeln für Flags</b>Klassifikation der Uhr (CE) + Studien-Algorithmus + HF-Schwelle → Prüfen / Beobachten / Unauffällig.</div>
+      <div class="card node"><b>🩺 Ärztliche Befundung</b>Befund, Kontakt, Endpunkt-Dokumentation, Export für die Statistik.</div>
+    </div>
+  </div>
+
+  <div class="card sec">
+    <h2>Regeln für Flags (Vorschlag)</h2>
+    <table>
+      <tr><th style="width:150px">Status</th><th>Auslöser</th><th>Reaktion</th></tr>
+      <tr><td><span class="badge critical"><span class="dot">!</span>Prüfen</span></td><td>Unbefundetes EKG mit „Vorhofflimmern“ laut Uhr (CE-gekennzeichnet). <span class="muted">Im Prototyp löst zusätzlich der Studien-Algorithmus Flags aus. In der Studie läuft er nur im Schattenbetrieb.</span></td><td>Ärztliche Befundung, gegebenenfalls Kontakt</td></tr>
+      <tr><td><span class="badge warning"><span class="dot">•</span>Beobachten</span></td><td>Regelmäßige Tachykardie, nicht eindeutig oder nicht beurteilbar, Extraschläge, HF-Alarm ohne nachfolgendes EKG</td><td>Befundung, gegebenenfalls EKG nachfordern</td></tr>
+      <tr><td><span class="badge none"><span class="dot">–</span>Keine Daten</span></td><td>Keine Synchronisation seit mehr als 5 Tagen oder kein EKG seit mehr als 7 Tagen</td><td>Patienten erinnern (Adhärenz)</td></tr>
+      <tr><td><span class="badge good"><span class="dot">✓</span>Unauffällig</span></td><td>Alle anderen Fälle</td><td>Routinemäßige Durchsicht</td></tr>
+      <tr><td>HF-Alarm</td><td>Max. Ruhe-HF ≥ 110/min über ≥ 10 min ohne Aktivität (Schwelle einstellbar)</td><td>Automatische Push-Nachricht „Bitte EKG aufzeichnen“</td></tr>
+      <tr><td>Endpunkt</td><td>Ärztlich bestätigtes VHF oder Vorhofflattern/AT ≥ 30 s nach der Blanking-Periode (90 Tage)</td><td>Wird als Rezidiv gezählt</td></tr>
+    </table>
+  </div>
+
+  <p class="disclaimer">⚠ Prototyp, kein Medizinprodukt. Alle Daten sind synthetisch erzeugt. Der Studien-Algorithmus ist eine einfache, nicht validierte Demonstration.
+    Daten werden nur lokal im Browser gespeichert (localStorage). Starten am besten über <code>Start.command</code> (lokaler Webserver).</p>
+</div>
+</body>
+</html>

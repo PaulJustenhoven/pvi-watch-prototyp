@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PVI-Watch · Demo-Modus</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  html, body { height: 100%; }
+  body { display: grid; grid-template-columns: 600px 1fr; grid-template-rows: auto 1fr; }
+  header { grid-column: 1 / -1; padding: 8px 16px; display: flex; gap: 12px; align-items: center; background: var(--surface); border-bottom: 1px solid var(--border); font-size: 13px; }
+  iframe { border: 0; width: 100%; height: 100%; }
+  .left { border-right: 1px solid var(--border); background: var(--page); }
+</style>
+</head>
+<body>
+<header><b>PVI-Watch · Demo-Modus</b><span class="ink2">Links die Patienten-App (Studien-ID VHF-001), rechts das Klinik-Dashboard. Beide sind live miteinander verbunden.</span><div class="spacer"></div><a href="index.html">Übersicht</a></header>
+<div class="left"><iframe src="patient.html" title="Patienten-App"></iframe></div>
+<div><iframe src="dashboard.html?p=VHF-001" title="Klinik-Dashboard"></iframe></div>
+</body>
+</html>
