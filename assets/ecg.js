@@ -209,85 +209,95 @@
   }
 
   /**
-   * Zeichnet einen EKG-Streifen auf EKG-Papier (25 mm/s).
-   * opts: { secondsPerRow, gain (mm/mV), peaks, showPeaks, thumb, width }
-   * Rückgabe: Geometrie für Hover-Auswertung.
+   * Zeichnet einen EKG-Streifen auf EKG-Papier (nominell 25 mm/s).
+   * opts: { secondsPerRow, gain (mm/mV), peaks, showPeaks, thumb, width, height, startSec, seconds }
+   * Rückgabe: Geometrie für Hover/Messung.
    */
   function drawECG(canvas, sig, opts = {}) {
+    const css = getComputedStyle(document.documentElement);
+    const v = (n, d) => css.getPropertyValue(n).trim() || d;
     const spr = opts.secondsPerRow || 10;
     const gain = opts.gain || 10;
     const W = opts.width || canvas.parentElement.clientWidth || 800;
-    const pxPerSec = W / spr;
+    const thumb = !!opts.thumb;
+    const calW = thumb ? 0 : 22;                 // Platz für Eichzacke
+    const pxPerSec = (W - calW) / spr;
     const mm = pxPerSec / 25;
-    const rows = Math.ceil(sig.seconds / spr);
-    const rowMm = gain > 10 ? 34 : 22;
-    const rowH = opts.thumb ? (opts.height || 36) : rowMm * mm;
-    const H = opts.thumb ? rowH : Math.max(60, rows * rowH);
-    const yScale = opts.thumb ? rowH * 0.5 : gain * mm; // px pro mV
+    const startSec = opts.startSec || 0;
+    const totalSec = opts.seconds || sig.seconds;
+    const rows = Math.ceil(totalSec / spr);
+    const rowMm = gain >= 20 ? 34 : gain <= 5 ? 16 : 22;
+    const rowH = thumb ? (opts.height || 36) : Math.max(70, rowMm * mm);
+    const H = thumb ? rowH : rows * rowH;
     const ctx = setupCanvas(canvas, W, H);
-    const css = getComputedStyle(document.documentElement);
-    ctx.fillStyle = css.getPropertyValue('--ecg-paper').trim() || '#fff7f6';
+    ctx.fillStyle = v('--ecg-paper', '#fff7f6');
     ctx.fillRect(0, 0, W, H);
 
-    if (!opts.thumb) {
-      if (mm >= 2.5) {
-        ctx.strokeStyle = css.getPropertyValue('--ecg-minor').trim(); ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        for (let xg = 0; xg <= W; xg += mm) { ctx.moveTo(Math.round(xg) + .5, 0); ctx.lineTo(Math.round(xg) + .5, H); }
-        for (let yg = 0; yg <= H; yg += mm) { ctx.moveTo(0, Math.round(yg) + .5); ctx.lineTo(W, Math.round(yg) + .5); }
+    if (!thumb) {
+      if (mm >= 2.2) {
+        ctx.strokeStyle = v('--ecg-minor', '#f6d9d6'); ctx.lineWidth = 0.5; ctx.beginPath();
+        for (let xg = calW; xg <= W; xg += mm) { ctx.moveTo(Math.round(xg) + .5, 0); ctx.lineTo(Math.round(xg) + .5, H); }
+        for (let yg = 0; yg <= H; yg += mm) { ctx.moveTo(calW, Math.round(yg) + .5); ctx.lineTo(W, Math.round(yg) + .5); }
         ctx.stroke();
       }
-      ctx.strokeStyle = css.getPropertyValue('--ecg-major').trim(); ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      for (let xg = 0; xg <= W + 1; xg += 5 * mm) { ctx.moveTo(Math.round(xg) + .5, 0); ctx.lineTo(Math.round(xg) + .5, H); }
-      for (let yg = 0; yg <= H + 1; yg += 5 * mm) { ctx.moveTo(0, Math.round(yg) + .5); ctx.lineTo(W, Math.round(yg) + .5); }
+      ctx.strokeStyle = v('--ecg-major', '#eaa9a3'); ctx.lineWidth = 0.8; ctx.beginPath();
+      for (let xg = calW; xg <= W + 1; xg += 5 * mm) { ctx.moveTo(Math.round(xg) + .5, 0); ctx.lineTo(Math.round(xg) + .5, H); }
+      for (let yg = 0; yg <= H + 1; yg += 5 * mm) { ctx.moveTo(calW, Math.round(yg) + .5); ctx.lineTo(W, Math.round(yg) + .5); }
       ctx.stroke();
     }
 
     const { x, fs } = sig;
     const perRow = spr * fs;
-    ctx.strokeStyle = css.getPropertyValue('--ecg-trace').trim() || '#141414';
-    ctx.lineWidth = opts.thumb ? 1 : 1.3;
-    ctx.lineJoin = 'round';
+    const trace = v('--ecg-trace', '#141414');
+    const yScale = thumb ? rowH * 0.5 : gain * mm;
     for (let r = 0; r < rows; r++) {
-      const base = r * rowH + rowH * (opts.thumb ? 0.62 : 0.6);
-      ctx.save();
-      ctx.beginPath(); ctx.rect(0, r * rowH, W, rowH); ctx.clip();
-      ctx.beginPath();
-      const i0 = r * perRow, i1 = Math.min(x.length, (r + 1) * perRow);
+      const base = r * rowH + rowH * (thumb ? 0.62 : 0.62);
+      const i0 = Math.round(startSec * fs) + r * perRow;
+      const i1 = Math.min(x.length, i0 + perRow, Math.round((startSec + totalSec) * fs));
+      ctx.save(); ctx.beginPath(); ctx.rect(0, r * rowH, W, rowH); ctx.clip();
+      if (!thumb) {
+        // Eichzacke 1 mV × 0,2 s
+        ctx.strokeStyle = trace; ctx.lineWidth = 1.2; ctx.beginPath();
+        const ch = 10 * mm * (gain / 10);
+        ctx.moveTo(2, base); ctx.lineTo(6, base); ctx.lineTo(6, base - ch); ctx.lineTo(16, base - ch); ctx.lineTo(16, base); ctx.lineTo(calW, base);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = trace; ctx.lineWidth = thumb ? 1 : 1.3; ctx.lineJoin = 'round'; ctx.beginPath();
       for (let i = i0; i < i1; i++) {
-        const px = (i - i0) / fs * pxPerSec;
+        const px = calW + (i - i0) / fs * pxPerSec;
         const py = base - x[i] * yScale;
         if (i === i0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
       }
       ctx.stroke();
       ctx.restore();
 
-      if (opts.showPeaks && opts.peaks) {
-        ctx.fillStyle = '#2a78d6';
-        ctx.font = '10px system-ui, sans-serif';
-        ctx.textAlign = 'center';
+      if (!thumb) {
+        ctx.fillStyle = v('--ecg-label', '#52514e'); ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`${Math.round(startSec + r * spr)} s`, calW + 3, r * rowH + rowH - 4);
+      }
+      if (opts.showPeaks && opts.peaks && !thumb) {
+        const mark = v('--ecg-mark', '#2a78d6');
         const rowPeaks = opts.peaks.filter(p => p >= i0 && p < i1);
+        ctx.fillStyle = mark;
         rowPeaks.forEach(p => {
-          const px = (p - i0) / fs * pxPerSec;
-          const ty = r * rowH + 4;
+          const px = calW + (p - i0) / fs * pxPerSec, ty = r * rowH + 3;
           ctx.beginPath(); ctx.moveTo(px - 4, ty); ctx.lineTo(px + 4, ty); ctx.lineTo(px, ty + 6); ctx.closePath(); ctx.fill();
         });
-        ctx.fillStyle = '#52514e';
+        ctx.fillStyle = v('--ecg-label', '#52514e'); ctx.textAlign = 'center';
         for (let k = 1; k < opts.peaks.length; k++) {
           const a = opts.peaks[k - 1], b = opts.peaks[k];
           if (b < i0 || b >= i1 || a < i0) continue;
-          const mid = ((a + b) / 2 - i0) / fs * pxPerSec;
-          ctx.fillText(Math.round((b - a) / fs * 1000), mid, r * rowH + 12);
+          const gap = (b - a) / fs * pxPerSec;
+          if (gap < 30) continue; // RR-Wert nur bei genug Platz (sonst per Hover)
+          ctx.fillText(Math.round((b - a) / fs * 1000), calW + ((a + b) / 2 - i0) / fs * pxPerSec, r * rowH + 13);
         }
       }
-      if (r > 0 && !opts.thumb) {
-        ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1;
+      if (r > 0 && !thumb) {
+        ctx.strokeStyle = v('--ecg-row', 'rgba(0,0,0,.25)'); ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(0, r * rowH + .5); ctx.lineTo(W, r * rowH + .5); ctx.stroke();
-        ctx.strokeStyle = css.getPropertyValue('--ecg-trace').trim() || '#141414';
       }
     }
-    return { W, H, rows, rowH, spr, pxPerSec, fs };
+    return { W, H, rows, rowH, spr, pxPerSec, fs, calW, mm, gain, startSec, base: f => f * rowH + rowH * 0.62 };
   }
 
   global.ECG = { FS, synth, analyze, drawECG, setupCanvas, mulberry32, gauss, median, mean };

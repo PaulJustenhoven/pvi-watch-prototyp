@@ -6,13 +6,13 @@
   --surface-2: #f3f2ee;
   --ink: #0b0b0b;
   --ink-2: #52514e;
-  --muted: #898781;
+  --muted: #6b6964;
   --grid: #e1e0d9;
   --axis: #c3c2b7;
   --border: rgba(11, 11, 11, 0.10);
   --accent: #2a78d6;
   --accent-ink: #1c5cab;
-  --good: #0ca30c;
+  --good: #098309;
   --good-ink: #006300;
   --warning: #fab219;
   --serious: #ec835a;
@@ -22,6 +22,10 @@
   --ecg-minor: #f6d9d6;
   --ecg-major: #eaa9a3;
   --ecg-trace: #141414;
+  --ecg-mark: #2a78d6;
+  --ecg-label: #52514e;
+  --ecg-row: rgba(0,0,0,.25);
+  --action: #7a3fc4;
   --radius: 10px;
   --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -40,9 +44,20 @@
     --grid: #2c2c2a;
     --axis: #383835;
     --border: rgba(255,255,255,0.10);
-    --accent: #3987e5;
+    --accent: #2a6fc4;
     --accent-ink: #86b6ef;
+    --muted: #a3a29b;
+    --good: #0ca30c;
     --good-ink: #0ca30c;
+    --critical: #e25555;
+    --action: #9a6be0;
+    --ecg-paper: #1d1615;
+    --ecg-minor: #352321;
+    --ecg-major: #5a3431;
+    --ecg-trace: #f0efec;
+    --ecg-mark: #6da7ec;
+    --ecg-label: #c3c2b7;
+    --ecg-row: rgba(255,255,255,.25);
     --shadow: none;
   }
 }
@@ -75,14 +90,29 @@ textarea { width: 100%; resize: vertical; min-height: 56px; }
 .row { display: flex; gap: 8px; align-items: center; }
 .spacer { flex: 1; }
 
-/* Status-Badges: Farbe + Symbol + Text (nie Farbe allein) */
+/* Status-Badges: Farbe + Form + Symbol + Text (nie Farbe allein) */
 .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; }
-.badge .dot { width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 800; color: #fff; }
-.badge.critical .dot { background: var(--critical); }
-.badge.warning .dot { background: var(--warning); color: #0b0b0b; }
-.badge.good .dot { background: var(--good); }
-.badge.none .dot { background: var(--none); }
-.badge.info .dot, .badge.done .dot { background: var(--accent); }
+.badge .dot { width: 17px; height: 17px; display: inline-grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; flex: 0 0 auto; }
+.badge.critical .dot { background: var(--critical); border-radius: 3px; }                       /* Quadrat */
+.badge.action .dot { background: var(--action); border-radius: 2px; transform: rotate(45deg) scale(.86); }  /* Raute */
+.badge.action .dot > span { transform: rotate(-45deg); }
+.badge.warning .dot { background: var(--warning); color: #0b0b0b; clip-path: polygon(50% 0, 100% 100%, 0 100%); padding-top: 5px; font-size: 10px; } /* Dreieck */
+.badge.todo .dot { background: transparent; border: 2px solid var(--accent); color: var(--accent); border-radius: 50%; } /* Ring */
+.badge.none .dot { background: transparent; border: 2px dashed var(--muted); color: var(--muted); border-radius: 50%; } /* gestrichelt */
+.badge.good .dot { background: var(--good); border-radius: 50%; }                              /* Kreis */
+.badge.info .dot { background: var(--accent); border-radius: 50%; }
+
+/* Herkunft einer Einstufung: Uhr / Algorithmus / Arzt */
+.src { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 9px; border-radius: 6px; white-space: nowrap; color: var(--ink); }
+.src.watch { border: 1px solid var(--axis); background: var(--surface); }
+.src.algo { border: 1px dashed var(--muted); background: transparent; color: var(--ink-2); }
+.src.doc { background: var(--ink); color: var(--page); font-weight: 600; }
+.src.doc.recurrence { background: var(--critical); color: #fff; }
+.src.blind { border: 1px dashed var(--axis); color: var(--muted); }
+.src .k { font-weight: 700; opacity: .8; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+kbd { font: 11px ui-monospace, Menlo, monospace; border: 1px solid var(--axis); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--surface); color: var(--ink-2); }
 
 .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border); white-space: nowrap; }
 .pill.endpoint { background: var(--critical); color: #fff; border-color: transparent; }

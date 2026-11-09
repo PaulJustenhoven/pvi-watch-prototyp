@@ -26,7 +26,6 @@
     fitbit:   { vendor: 'Fitbit',   model: 'Fitbit Sense 2',        path: 'Thryve → Google Health (Cloud)', ecg: true },
     pixel:    { vendor: 'Google',   model: 'Pixel Watch 3',         path: 'Thryve → Google Health (Cloud)', ecg: true },
     withings: { vendor: 'Withings', model: 'ScanWatch 2',           path: 'Thryve → Withings (Cloud)', ecg: true },
-    garmin:   { vendor: 'Garmin',   model: 'Venu 3',                path: 'Thryve → Garmin (Cloud), nur HF', ecg: false },
   };
 
   // Simulierte Hersteller-Klassifikation (so wie sie über die Schnittstelle käme)
@@ -44,11 +43,20 @@
   const DEFAULT_HR = { sinus: [58, 78], af: [92, 128], tachy: [124, 138], flutter: [145, 150], sves: [64, 76], artifact: [66, 84] };
   const TRUE_FINDING = { sinus: 'SR', af: 'VHF', tachy: 'ST', flutter: 'AFL', sves: 'SR_ES', artifact: 'NB' };
 
+  // Reihenfolge = Tastenkürzel 1–8; Gruppen für das Befundformular
   const FINDINGS = {
     SR: 'Sinusrhythmus', SR_ES: 'SR mit Extrasystolen', ST: 'Sinustachykardie',
-    VHF: 'Vorhofflimmern', AFL: 'Vorhofflattern / atriale Tachykardie', SVT: 'Andere SVT / Tachykardie', NB: 'Nicht beurteilbar',
+    VHF: 'Vorhofflimmern', AFL: 'Vorhofflattern', AT: 'Atriale Tachykardie',
+    SVT: 'Andere SVT / Tachykardie', NB: 'Nicht beurteilbar',
   };
-  const RECURRENCE = new Set(['VHF', 'AFL']);
+  const FINDING_GROUPS = [
+    ['Ohne Rezidiv', ['SR', 'SR_ES', 'ST']],
+    ['Rezidiv-relevant (VHF/AFL/AT)', ['VHF', 'AFL', 'AT']],
+    ['Sonstige', ['SVT', 'NB']],
+  ];
+  const RECURRENCE = new Set(['VHF', 'AFL', 'AT']);
+  const ACTION_FINDINGS = new Set(['VHF', 'AFL', 'AT', 'SVT']); // erfordern dokumentierte Maßnahme
+  const ALGO_VERSION = 'RR-Irregularität v0.1 (Demo, nicht validiert)';
 
   // ---------- Kohorte ----------
   // ecg: [daysAgo, rhythm, trigger, {hr, hour, unreviewed, symptoms, reviewedAs}]
@@ -64,14 +72,15 @@
       events: [[0.25, 'HR', 'Ruhe-HF 149/min über 14 min', 149]], spike: [0, 149] },
     { id: 'VHF-005', age: 55, sex: 'w', dev: 'apple', pvi: 97,
       events: [[0.08, 'HR', 'Ruhe-HF 124/min über 11 min', 124, true]], spike: [0, 124] },
-    { id: 'VHF-006', age: 69, sex: 'm', dev: 'garmin', pvi: 162 },
+    { id: 'VHF-006', age: 69, sex: 'm', dev: 'withings', pvi: 162 },
     { id: 'VHF-007', age: 64, sex: 'w', dev: 'pixel', pvi: 31,
       extra: [[0.6, 'artifact', 'Symptome', { symptoms: ['Schwindel'], unreviewed: true, hour: 17 }]] },
     { id: 'VHF-008', age: 70, sex: 'w', dev: 'apple', pvi: 251,
       extra: [[1.5, 'sves', 'Symptome', { symptoms: ['Herzstolpern'], unreviewed: true, hour: 22 }]] },
     { id: 'VHF-009', age: 59, sex: 'm', dev: 'withings', pvi: 184, lastData: 12 },
     { id: 'VHF-010', age: 66, sex: 'm', dev: 'samsung', pvi: 133,
-      extra: [[9, 'af', 'Symptome', { symptoms: ['Herzrasen', 'Luftnot'], hour: 7, hr: 118 }]] },
+      extra: [[9, 'af', 'Symptome', { symptoms: ['Herzrasen', 'Luftnot'], hour: 7, hr: 118 }]],
+      contacts: [[7.8, 'Telefonat', 'Einbestellung Rhythmusambulanz', 'Pat. symptomatisch (Herzrasen), Vorstellung Do. 8:30, OAK fortgeführt']] },
     { id: 'VHF-011', age: 52, sex: 'w', dev: 'fitbit', pvi: 77 },
     { id: 'VHF-012', age: 74, sex: 'm', dev: 'apple', pvi: 305 },
     { id: 'VHF-013', age: 63, sex: 'w', dev: 'samsung', pvi: 64,
@@ -101,8 +110,8 @@
       vendorClass: vc, vendorCode: vendorCode(vc), source: DEVICES[p.dev].path,
     };
     // ältere EKGs gelten als bereits befundet (Vorbefunde der Demo)
-    if (!o.unreviewed && daysAgo > 2.5) {
-      e.initialReview = { finding: o.reviewedAs || TRUE_FINDING[rhythm], by: 'Dr. Studienärztin (Demo)', t: new Date(t.getTime() + 0.6 * DAY).toISOString(), ge30s: rhythm === 'af' };
+    if (!o.unreviewed && daysAgo > (trigger === 'Geplant' && rhythm === 'sinus' ? 1.0 : 2.5)) {
+      e.initialReview = { finding: o.reviewedAs || TRUE_FINDING[rhythm], by: 'Dr. Studienärztin (Demo)', t: new Date(t.getTime() + 0.6 * DAY).toISOString(), ge30s: rhythm === 'af' || rhythm === 'flutter', history: [] };
     }
     return e;
   }
@@ -139,9 +148,20 @@
       }));
 
       const lastSync = s.lastData ? at(s.lastData, 20) : new Date(Date.now() - (0.05 + rng() * 0.4) * DAY);
+      const clin = {
+        afType: rng() < 0.65 ? 'paroxysmal' : 'persistierend',
+        energy: ['Pulsed Field (PFA)', 'Kryoballon', 'Radiofrequenz'][Math.floor(rng() * 3)],
+        lesions: rng() < 0.75 ? 'nur PVI' : (rng() < 0.5 ? 'PVI + CTI-Linie' : 'PVI + Hinterwand'),
+        aad: s.pvi <= 90 && rng() < 0.6 ? 'Flecainid 100 mg 1-0-1 (Absetzen geplant Tag 90)' : (rng() < 0.12 ? 'Amiodaron 200 mg 1-0-0' : 'keine'),
+        oak: rng() < 0.85 ? ['Apixaban 5 mg 1-0-1', 'Rivaroxaban 20 mg 0-0-1', 'Edoxaban 60 mg 1-0-0'][Math.floor(rng() * 3)] : 'keine',
+        bb: rng() < 0.5 ? 'Bisoprolol 2,5 mg 1-0-0' : 'keine',
+        cha: Math.min(6, Math.max(0, Math.round((s.age - 55) / 7 + rng() * 2))),
+        asOf: new Date(pviDate.getTime() + DAY).toISOString(),
+      };
       return {
-        id: s.id, age: s.age, sex: s.sex, devKey: s.dev, device: dev, pviDate: pviDate.toISOString(),
+        id: s.id, age: s.age, sex: s.sex, clin, devKey: s.dev, device: dev, pviDate: pviDate.toISOString(),
         ecgs, hrDaily, events, lastSync: lastSync.toISOString(), demo: !!s.demo, note: s.note || '',
+        seedContacts: (s.contacts || []).map(([d, method, outcome, note]) => ({ patientId: s.id, t: at(d, 14).toISOString(), method, outcome, note, by: 'Dr. Studienärztin (Demo)', ref: null, followUp: null })),
       };
     });
   }
@@ -184,5 +204,5 @@
   const daysSince = iso => (Date.now() - new Date(iso).getTime()) / DAY;
   const dayPostPvi = (p, iso) => Math.floor((new Date(iso || Date.now()) - new Date(p.pviDate)) / DAY);
 
-  global.PVI = { Store, DEVICES, FINDINGS, RECURRENCE, BLANKING_DAYS, DAY, loadCohort, vendorClass, vendorCode, daysSince, dayPostPvi, DEFAULT_HR };
+  global.PVI = { Store, DEVICES, FINDINGS, FINDING_GROUPS, RECURRENCE, ACTION_FINDINGS, ALGO_VERSION, BLANKING_DAYS, DAY, loadCohort, vendorClass, vendorCode, daysSince, dayPostPvi, DEFAULT_HR };
 })(window);

@@ -49,7 +49,7 @@
     <h2>Datenfluss</h2>
     <div class="flow">
       <div class="card node"><b>⌚ Smartwatch</b>EKG (30 s, Einkanal), Herzfrequenz, Hinweise auf unregelmäßigen Rhythmus. Die Aufnahme startet der Patient selbst.</div>
-      <div class="card node"><b>📱 Studien-App + Thryve</b>Apple Health über das Thryve-SDK in der App. Google Health (Fitbit/Pixel), Withings, Garmin über das Verbindungs-Widget von Thryve (OAuth). Samsung-EKG direkt über das Samsung-SDK.</div>
+      <div class="card node"><b>📱 Studien-App + Thryve</b>Apple Health über das Thryve-SDK in der App. Google Health (Fitbit/Pixel) und Withings über das Verbindungs-Widget von Thryve (OAuth). Samsung-EKG direkt über das Samsung-SDK.</div>
       <div class="card node"><b>🔒 Studien-Backend (DE/EU)</b>Pseudonymisiert, TLS, FHIR-Ablage, Audit-Trail. Keine Klarnamen.</div>
       <div class="card node"><b>⚙️ Regeln für Flags</b>Klassifikation der Uhr (CE) + Studien-Algorithmus + HF-Schwelle → Prüfen / Beobachten / Unauffällig.</div>
       <div class="card node"><b>🩺 Ärztliche Befundung</b>Befund, Kontakt, Endpunkt-Dokumentation, Export für die Statistik.</div>
@@ -59,13 +59,15 @@
   <div class="card sec">
     <h2>Regeln für Flags (Vorschlag)</h2>
     <table>
-      <tr><th style="width:150px">Status</th><th>Auslöser</th><th>Reaktion</th></tr>
-      <tr><td><span class="badge critical"><span class="dot">!</span>Prüfen</span></td><td>Unbefundetes EKG mit „Vorhofflimmern“ laut Uhr (CE-gekennzeichnet). <span class="muted">Im Prototyp löst zusätzlich der Studien-Algorithmus Flags aus. In der Studie läuft er nur im Schattenbetrieb.</span></td><td>Ärztliche Befundung, gegebenenfalls Kontakt</td></tr>
-      <tr><td><span class="badge warning"><span class="dot">•</span>Beobachten</span></td><td>Regelmäßige Tachykardie, nicht eindeutig oder nicht beurteilbar, Extraschläge, HF-Alarm ohne nachfolgendes EKG</td><td>Befundung, gegebenenfalls EKG nachfordern</td></tr>
-      <tr><td><span class="badge none"><span class="dot">–</span>Keine Daten</span></td><td>Keine Synchronisation seit mehr als 5 Tagen oder kein EKG seit mehr als 7 Tagen</td><td>Patienten erinnern (Adhärenz)</td></tr>
-      <tr><td><span class="badge good"><span class="dot">✓</span>Unauffällig</span></td><td>Alle anderen Fälle</td><td>Routinemäßige Durchsicht</td></tr>
+      <tr><th style="width:170px">Status</th><th>Auslöser</th><th>Reaktion</th></tr>
+      <tr><td><span class="badge critical"><span class="dot"><span>!</span></span>Prüfen</span></td><td>Unbefundetes EKG mit „Vorhofflimmern“ laut Uhr (CE) oder schnelle regelmäßige Tachykardie ≥ 130/min (Vorhofflattern/AT ausschließen). <span class="muted">Im Prototyp löst zusätzlich der Studien-Algorithmus Flags aus. In der Studie läuft er nur im Schattenbetrieb.</span></td><td>Ärztliche Befundung, Frist 1 Werktag</td></tr>
+      <tr><td><span class="badge action"><span class="dot"><span>!</span></span>Maßnahme offen</span></td><td>VHF, Vorhofflattern, AT oder SVT ärztlich bestätigt, aber noch kein Kontakt bzw. keine Maßnahme dokumentiert</td><td>Patientenkontakt und Maßnahme dokumentieren</td></tr>
+      <tr><td><span class="badge warning"><span class="dot"><span>!</span></span>Beobachten</span></td><td>Tachykardie, Extraschläge, nicht beurteilbar, angefordertes EKG fehlt, Wiedervorlage fällig, Zweitbefundung angefordert, &gt; 14 Tage ohne Daten</td><td>Befundung bzw. Nachfassen</td></tr>
+      <tr><td><span class="badge todo"><span class="dot"><span></span></span>Zu befunden</span></td><td>EKG ohne ärztliche Befundung, automatisch ohne Hinweis</td><td>Befundung (auch als Stapelbefundung möglich)</td></tr>
+      <tr><td><span class="badge none"><span class="dot"><span></span></span>Keine Daten</span></td><td>Keine Synchronisation seit &gt; 5 Tagen oder kein EKG seit &gt; 7 Tagen</td><td>Erinnerung senden (Adhärenz)</td></tr>
+      <tr><td><span class="badge good"><span class="dot"><span>✓</span></span>Alles befundet</span></td><td>Alle EKGs ärztlich befundet, keine offenen Punkte</td><td>–</td></tr>
       <tr><td>HF-Alarm</td><td>Max. Ruhe-HF ≥ 110/min über ≥ 10 min ohne Aktivität (Schwelle einstellbar)</td><td>Automatische Push-Nachricht „Bitte EKG aufzeichnen“</td></tr>
-      <tr><td>Endpunkt</td><td>Ärztlich bestätigtes VHF oder Vorhofflattern/AT ≥ 30 s nach der Blanking-Periode (90 Tage)</td><td>Wird als Rezidiv gezählt</td></tr>
+      <tr><td>Endpunkt</td><td><b>Erstes</b> ärztlich bestätigtes VHF, Vorhofflattern oder AT <b>≥ 30 s</b> ab Tag 91 (nach 90 Tagen Blanking). Rhythmusstörungen bis Tag 90 zählen als Frührezidiv.</td><td>Wird als Rezidiv gezählt (Zeit bis zum ersten Ereignis)</td></tr>
     </table>
   </div>
 

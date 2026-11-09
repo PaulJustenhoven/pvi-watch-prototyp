@@ -15,7 +15,6 @@
     ['fitbit', '⌚', 'Fitbit', 'Anmeldung beim Fitbit/Google-Konto'],
     ['pixel', '⌚', 'Google Pixel Watch', 'Anmeldung beim Fitbit/Google-Konto'],
     ['withings', '⌚', 'Withings ScanWatch', 'Anmeldung beim Withings-Konto'],
-    ['garmin', '⌚', 'Garmin', 'Anmeldung bei Garmin Connect · nur Herzfrequenz'],
   ];
   const SYMPTOMS = ['Herzrasen', 'Herzstolpern', 'Schwindel', 'Luftnot', 'Brustdruck', 'Leistungsknick'];
 
